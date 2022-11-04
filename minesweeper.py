@@ -1,4 +1,5 @@
 import tkinter as tk
+from functools import partial
 
 root = tk.Tk()
 ROWS = 14
@@ -9,6 +10,7 @@ CLOCK_IMAGE = tk.PhotoImage(file="images/clock_icon.png")
 BLANK_IMAGE = tk.PhotoImage(file="images/blank_tile.png")
 TILE_SIZE = 30
 time = "0"
+middle_down = False
 flags_to_place = 40
 info_frame = tk.Frame(height=30)
 grid_frame = tk.Frame()
@@ -24,6 +26,10 @@ class Tile(tk.Button):
         self.row = row
         self.column = column
 
+        self.bind('<Button-3>', self.toggle_flagged)
+        self.bind('<Enter>', partial(self.set_highlight, True))
+        self.bind('<Leave>', partial(self.set_highlight, False))
+
     def __repr__(self) -> str:
          return "Tile"
 
@@ -31,26 +37,29 @@ class Tile(tk.Button):
         relative_neighbour_coords = [[-1,-1], [-1,0], [-1,1],
                                      [0,-1],          [0,1],
                                      [1,-1], [1,0], [1,1]]
+        absolute_neighbour_coords = []
         for item in relative_neighbour_coords:
             new_row = self.row + item[0]
             new_column = self.column + item[1]
-            if new_row < 0 or new_row > ROWS:
+            if new_row < 0 or new_row > ROWS-1:
                 continue
-            if new_column < 0 or new_column > COLUMNS:
+            if new_column < 0 or new_column > COLUMNS-1:
                 continue
-            self.neighbours.append([new_row, new_column])
+            absolute_neighbour_coords.append([new_row, new_column])
+        for item in absolute_neighbour_coords:
+            self.neighbours.append(tile_map[item[0]][item[1]])
 
     def set_image(self, image):
             self.config(image = image)
 
-    def toggle_highlight(self):
-        self._highlighted = False if self._highlighted else True    #Togggle between True and False
+    def set_highlight(self, value,  *args):
+        self._highlighted = value
         if self._highlighted:
             self.config(bg='#b8b8b8', activebackground='#b8b8b8')
         else:
             self.config(bg = 'gray', activebackground='gray')
 
-    def toggle_flag(self):
+    def toggle_flagged(self, *args):
         global flags_to_place
         self._flagged = False if self._flagged else True    #Togggle between True and False
         if self._flagged:
@@ -68,6 +77,11 @@ def update_timer_label():
     time = str(int(time)+1)
     timer_label.config(text=time)
     root.after(1000, update_timer_label)
+
+def set_middle_flag(value, *args):
+    global middle_down
+    middle_down = value
+    print(middle_down)
 
 tile_map = []
 
@@ -98,4 +112,6 @@ update_timer_label()
 
 info_frame.pack()
 grid_frame.pack()
+root.bind('<ButtonPress-2>', partial(set_middle_flag,True))
+root.bind('<ButtonRelease-2>', partial(set_middle_flag, False))
 root.mainloop()
