@@ -121,4 +121,5 @@ update_timer_label()
 
 info_frame.pack()
 grid_frame.pack()
+
 root.mainloop()
