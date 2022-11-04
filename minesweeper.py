@@ -10,7 +10,6 @@ CLOCK_IMAGE = tk.PhotoImage(file="images/clock_icon.png")
 BLANK_IMAGE = tk.PhotoImage(file="images/blank_tile.png")
 TILE_SIZE = 30
 time = "0"
-middle_down = False
 flags_to_place = 40
 info_frame = tk.Frame(height=30)
 grid_frame = tk.Frame()
@@ -26,9 +25,12 @@ class Tile(tk.Button):
         self.row = row
         self.column = column
 
+        self.bind('<ButtonPress-2>', partial(self.set_neighbours_highlight, True))
+        self.bind('<ButtonRelease-2>', partial(self.set_neighbours_highlight, False))
         self.bind('<Button-3>', self.toggle_flagged)
         self.bind('<Enter>', partial(self.set_highlight, True))
         self.bind('<Leave>', partial(self.set_highlight, False))
+        self.bind('<Motion>')
 
     def __repr__(self) -> str:
          return "Tile"
@@ -53,11 +55,21 @@ class Tile(tk.Button):
             self.config(image = image)
 
     def set_highlight(self, value,  *args):
-        self._highlighted = value
-        if self._highlighted:
-            self.config(bg='#b8b8b8', activebackground='#b8b8b8')
-        else:
-            self.config(bg = 'gray', activebackground='gray')
+        if self.hidden == True:
+            self._highlighted = value
+            if self._highlighted:
+                self.config(bg='#b8b8b8', activebackground='#b8b8b8')
+            else:
+                self.config(bg = 'gray', activebackground='gray')
+
+    def set_neighbours_highlight(self, value,  *args):
+        for item in self.neighbours:
+            if item.hidden == True:
+                item._highlighted = value
+                if item._highlighted:
+                    item.config(bg='#b8b8b8', activebackground='#b8b8b8')
+                else:
+                    item.config(bg = 'gray', activebackground='gray')
 
     def toggle_flagged(self, *args):
         global flags_to_place
@@ -78,11 +90,6 @@ def update_timer_label():
     timer_label.config(text=time)
     root.after(1000, update_timer_label)
 
-def set_middle_flag(value, *args):
-    global middle_down
-    middle_down = value
-    print(middle_down)
-
 tile_map = []
 
 for i in range(ROWS):         #Create tile_map
@@ -99,6 +106,8 @@ for row in tile_map:
     for tile in row:
         tile.set_neighbours()
 
+
+#Setup info pane
 flag_image_label = tk.Label(info_frame, image = FLAG_IMAGE)
 flag_image_label.pack(side='left')
 flags_left_label = tk.Label(info_frame, text=flags_to_place, font="Helvetica 20")
@@ -112,6 +121,4 @@ update_timer_label()
 
 info_frame.pack()
 grid_frame.pack()
-root.bind('<ButtonPress-2>', partial(set_middle_flag,True))
-root.bind('<ButtonRelease-2>', partial(set_middle_flag, False))
 root.mainloop()
