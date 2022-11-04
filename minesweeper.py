@@ -3,22 +3,24 @@ import tkinter as tk
 root = tk.Tk()
 ROWS = 14
 COLUMNS = 18
-BOMB_IMAGE = tk.PhotoImage(file="bomb_icon.png")
-FLAG_IMAGE = tk.PhotoImage(file="flag_icon.png")
-BLANK_IMAGE = tk.PhotoImage(file="blank_tile.png")
+BOMB_IMAGE = tk.PhotoImage(file="images/bomb_icon.png")
+FLAG_IMAGE = tk.PhotoImage(file="images/flag_icon.png")
+CLOCK_IMAGE = tk.PhotoImage(file="images/clock_icon.png")
+BLANK_IMAGE = tk.PhotoImage(file="images/blank_tile.png")
 TILE_SIZE = 30
+time = "0"
 flags_to_place = 40
 info_frame = tk.Frame(height=30)
 grid_frame = tk.Frame()
 
 class Tile(tk.Button):
     def __init__(self, parent, row, column):
-        super().__init__(parent, width=TILE_SIZE, height=TILE_SIZE, image = BLANK_IMAGE, bg = 'gray',activebackground='gray', command=self.toggle_flag)
+        super().__init__(parent, width=TILE_SIZE, height=TILE_SIZE, image = BLANK_IMAGE, bg = 'gray',activebackground='gray')
         self.neighbours = []      #Stores number of adjacent bombs
-        self._flagged = False        #If flagged by player
-        self.bomb = None            #If tile is a bomb
-        self.hidden = True          #If tile conentents is hidden
-        self._highlighted = False    #If highlighted by chording check
+        self._flagged = False     #If flagged by player
+        self.bomb = None          #If tile is a bomb
+        self.hidden = True        #If tile conentents is hidden
+        self._highlighted = False #If highlighted by chording check
         self.row = row
         self.column = column
 
@@ -49,14 +51,23 @@ class Tile(tk.Button):
             self.config(bg = 'gray', activebackground='gray')
 
     def toggle_flag(self):
+        global flags_to_place
         self._flagged = False if self._flagged else True    #Togggle between True and False
         if self._flagged:
             self.set_image(FLAG_IMAGE)
             flags_to_place -= 1
+            flags_left_label.config(text=flags_to_place)
         else:
             self.set_image(BLANK_IMAGE)
             flags_to_place += 1
+            flags_left_label.config(text=flags_to_place)
 
+
+def update_timer_label():
+    global time
+    time = str(int(time)+1)
+    timer_label.config(text=time)
+    root.after(1000, update_timer_label)
 
 tile_map = []
 
@@ -76,6 +87,14 @@ for row in tile_map:
 
 flag_image_label = tk.Label(info_frame, image = FLAG_IMAGE)
 flag_image_label.pack(side='left')
+flags_left_label = tk.Label(info_frame, text=flags_to_place, font="Helvetica 20")
+flags_left_label.pack(side='left')
+
+timer_image_label = tk.Label(info_frame, image=CLOCK_IMAGE)
+timer_image_label.pack(side='left', padx=(30,0))
+timer_label = tk.Label(info_frame, text = time, font="Helvetica 20")
+timer_label.pack(side='left')
+update_timer_label()
 
 info_frame.pack()
 grid_frame.pack()
