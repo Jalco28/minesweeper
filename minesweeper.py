@@ -3,13 +3,15 @@ from functools import partial
 import random
 
 root = tk.Tk()
+root.title('Minesweeper')
+root.resizable(False, False)
 ROWS = 14
 COLUMNS = 18
 BOMB_IMAGE = tk.PhotoImage(file="images/bomb_icon.png")
 FLAG_IMAGE = tk.PhotoImage(file="images/flag_icon.png")
 CLOCK_IMAGE = tk.PhotoImage(file="images/clock_icon.png")
 debug = tk.PhotoImage("images/flag_icon.png")
-NUMBER_IMAGES = {0: tk.PhotoImage(file="images/blank_tile.png"),
+NUMBER_IMAGES = {0: tk.PhotoImage(file="images/blank_tile.png", name='blank'),
                  1: tk.PhotoImage(file="images/1.png"),
                  2: tk.PhotoImage(file="images/2.png"),
                  3: tk.PhotoImage(file="images/3.png"),
@@ -19,10 +21,12 @@ NUMBER_IMAGES = {0: tk.PhotoImage(file="images/blank_tile.png"),
                  7: tk.PhotoImage(file="images/7.png"),
                  8: tk.PhotoImage(file="images/8.png")}
 TILE_SIZE = 30
+root.wm_iconphoto(False, BOMB_IMAGE)
 game_over = False
 w_down = False
 time = "0"
 flags_to_place = 40
+tiles_to_click = 212
 info_frame = tk.Frame(height=30, name="frame_info")
 grid_frame = tk.Frame(name="frame_grid")
 bombs_generated = False
@@ -33,6 +37,7 @@ class Tile(tk.Button):
         super().__init__(parent, width=TILE_SIZE, height=TILE_SIZE,
                          image=NUMBER_IMAGES[0], bg='gray', activebackground='gray')
         self.neighbours = []  # Stores list of adjacent tile widgets
+        self.flag_neighbours = 0
         self._flagged = False  # If flagged by player
         self.bomb = False  # If tile is a bomb
         self.hidden = True  # If tile contents is hidden
@@ -105,10 +110,16 @@ class Tile(tk.Button):
                 self.set_image(NUMBER_IMAGES[0])
                 flags_to_place += 1
                 flags_left_label.config(text=flags_to_place)
+            for neighbour in self.neighbours:
+                if self._flagged:
+                    neighbour.flag_neighbours += 1
+                else:
+                    neighbour.flag_neighbours -= 1
+                    pass
 
     def click(self, recurse, *args):
-        global game_over
-        if w_down and recurse:
+        global game_over, tiles_to_click
+        if w_down and recurse and self.display_number == self.flag_neighbours:
             for neighbour in self.neighbours:
                 neighbour.click(False)
         if self.hidden == False or game_over or self._flagged:
@@ -117,16 +128,19 @@ class Tile(tk.Button):
             generate_bombs(self.row, self.column)
             define_display_numbers()
         self.hidden = False
+        tiles_to_click -= 1
         self.config(bg="#B3b3b3", activebackground="#B3b3b3")
         if self.bomb:
-            game_over = True
-            run_game_over()
+            run_game_over(False)
+            self.config(bg='red')
         else:
             self.set_image(NUMBER_IMAGES[self.display_number])
+            if tiles_to_click == 0:
+                run_game_over(True)
 
         if self.display_number == 0:
             for neighbour in self.neighbours:
-                neighbour.click(True)
+                neighbour.click(True if recurse else False)
 
 
 def generate_bombs(preserve_row, preserve_column):
@@ -156,13 +170,25 @@ def define_display_numbers():
                     tile.display_number += 1
 
 
-def run_game_over():
-    for row in tile_map:
-        for tile in row:
-            if tile.bomb:
-                tile.set_image(BOMB_IMAGE)
-                tile.hidden = False
-                tile.config(bg="#B3b3b3", activebackground="#B3b3b3")
+def run_game_over(win):
+    global game_over
+    game_over = True
+    if win:
+        for row in tile_map:
+            for tile in row:
+                if tile.bomb:
+                    if tile.cget('image') == 'blank':
+                        tile.set_image(BOMB_IMAGE)
+                        tile.hidden = False
+                    tile.config(bg="#138808", activebackground="#138808")
+
+    else:
+        for row in tile_map:
+            for tile in row:
+                if tile.bomb:
+                    tile.set_image(BOMB_IMAGE)
+                    tile.hidden = False
+                    tile.config(bg="#B3b3b3", activebackground="#B3b3b3")
 
 
 def force_update_highlight(value):
@@ -224,7 +250,6 @@ timer_image_label.pack(side='left', padx=(30, 0))
 timer_label = tk.Label(info_frame, text=time, font="Helvetica 20")
 timer_label.pack(side='left')
 update_timer_label()
-
 
 root.bind("<KeyPress>", key_pressed)
 root.bind("<KeyRelease>", key_released)
